@@ -1,11 +1,11 @@
-<!doctype html>
-<html lang="en"> 
- <head> 
-  <meta charset="UTF-8"> 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-  <title>Tap Hero - Glitchxkartik</title> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tap Hero - Glitchxkartik</title>
   <style>
-    * {margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif;}
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
     body {
       background: #0a0a0a;
       color: #fff;
@@ -15,6 +15,7 @@
       justify-content: center;
       height: 100vh;
       overflow: hidden;
+      position: relative;
     }
     canvas {
       background: #1a1a1a;
@@ -46,33 +47,51 @@
       margin-top: 12px;
       color: #888;
     }
-  </style> 
- </head> 
- <body> 
-  <h1>⚔️ Tap Hero</h1> 
-  <canvas id="gameCanvas" width="300" height="500"></canvas> 
-  <div id="scoreBoard">
-    Score: <span id="score">0</span> | High Score: <span id="highScore">0</span> 
-  </div> <button id="restart" onclick="startGame()">Restart</button> 
-  <div id="madeBy">
-   Made by Glitchxkartik
-  </div> 
-  <audio id="hitSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_a1f2b7b4a4.mp3"></audio> 
-  <audio id="failSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_cef52608b4.mp3"></audio> 
+    #muteBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #444;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 16px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚔️ Tap Hero</h1>
+  <canvas id="gameCanvas" width="300" height="500"></canvas>
+  <div id="scoreBoard">Score: <span id="score">0</span> | High Score: <span id="highScore">0</span></div>
+  <button id="restart" onclick="startGame()">Restart</button>
+  <div id="madeBy">Made by Glitchxkartik</div>
+  <button id="muteBtn" onclick="toggleMute()">🔊</button>
+
+  <!-- Preloaded audio elements -->
+  <audio id="hitSound" url="hit.mp3" preload="auto"></audio>
+  <audio id="failSound" src="fail.mp3" preload="auto"></audio>
+  <audio id="bgMusic" src="bg.mp3" loop preload="auto"></audio>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const hitSound = document.getElementById("hitSound");
     const failSound = document.getElementById("failSound");
+    const bgMusic = document.getElementById("bgMusic");
     const scoreEl = document.getElementById("score");
     const highScoreEl = document.getElementById("highScore");
     const restartBtn = document.getElementById("restart");
+    const muteBtn = document.getElementById("muteBtn");
 
     let enemy = { x: -50, y: 250, speed: 2 };
     let score = 0;
     let highScore = localStorage.getItem("tapHeroHigh") || 0;
     let hitZone = { x: 130, width: 40 };
     let gameOver = false;
+    let isMuted = false;
+    let gameStarted = false;
 
     highScoreEl.textContent = highScore;
 
@@ -85,7 +104,7 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(enemy.x, enemy.y - 20, 30, 40);
       ctx.fillStyle = "#ff3030";
-      ctx.fillRect(enemy.x + 8, enemy.y - 25, 15, 5); // ninja headband
+      ctx.fillRect(enemy.x + 8, enemy.y - 25, 15, 5);
     }
 
     function update() {
@@ -93,9 +112,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawZone();
         drawEnemy();
-
         enemy.x += enemy.speed;
-
         if (enemy.x > canvas.width) {
           gameEnd();
         } else {
@@ -105,6 +122,11 @@
     }
 
     function startGame() {
+      gameStarted = true;
+      if (!isMuted) {
+        bgMusic.currentTime = 0;
+        bgMusic.play();
+      }
       score = 0;
       enemy.x = -50;
       enemy.speed = 2;
@@ -116,7 +138,8 @@
 
     function gameEnd() {
       gameOver = true;
-      failSound.play();
+      if (!isMuted) failSound.play();
+      bgMusic.pause();
       navigator.vibrate?.([100, 100]);
       restartBtn.style.display = "block";
       if (score > highScore) {
@@ -127,19 +150,29 @@
     }
 
     canvas.addEventListener("click", () => {
+      if (!gameStarted) {
+        startGame(); // start on first user click
+        return;
+      }
       if (!gameOver && enemy.x > hitZone.x && enemy.x < hitZone.x + hitZone.width) {
         score++;
         enemy.x = -50;
         enemy.speed += 0.4;
         scoreEl.textContent = score;
-        hitSound.play();
+        if (!isMuted) hitSound.play();
         navigator.vibrate?.(50);
       } else {
         gameEnd();
       }
     });
 
-    startGame();
-  </script> 
- </body>
-</html
+    function toggleMute() {
+      isMuted = !isMuted;
+      [hitSound, failSound, bgMusic].forEach(audio => {
+        audio.muted = isMuted;
+      });
+      muteBtn.textContent = isMuted ? "🔇" : "🔊";
+    }
+  </script>
+</body>
+</html>
